@@ -1,3 +1,17 @@
+/*
+  @author   Scott
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+*/
+
 #include "Arduino.h"
 #include "SoftwareSerial.h"
 #include "Konwerter.h"
@@ -15,46 +29,46 @@ unsigned int RSSI_OK;
 
 void setup()
 {
-  FrskyData = new SoftwareSerial(2, 2);
+  FrskyData = new SoftwareSerial(2, 2); //port dla danych frsky, na tym pinie nadajemy telemetrie
   port = FrskyData;
-  FrskyData->begin(9600);
+  FrskyData->begin(9600); //prędkość portu wysyłania telemetrii
   pinMode(2, OUTPUT);
 
-  eLeReSData = new SoftwareSerial(3, 4);
+  eLeReSData = new SoftwareSerial(3, 4); //port do nasłuchiwania eLeReSa
   port = eLeReSData;
   //58823 baud
-  eLeReSData->begin(57600);
+  eLeReSData->begin(57600); //prędkość portu eLeReSa
   pinMode(4, OUTPUT);
   pinMode(3, INPUT);
 #ifdef DEBUG
-  Serial.begin(9600);
+  Serial.begin(9600); //port sprzętowy do komunikatów debug.
 #endif
-
   pinMode(13, OUTPUT);
 }
 
 
-void sendAllData()
+void sendAllData() //tworzenie kompletnej ramki danych do wysłania
 {
   uint32_t currentTime = millis();
   if (currentTime > frame3Time) // Sent every 5s (5000ms)
   {
-    frame3Time = currentTime + 2000;
-    frame2Time = currentTime + 100; // Postpone frame 2 to next cycle
-    frame1Time = currentTime + 100; // Postpone frame 1 to next cycle
+    frame3Time = currentTime + 5000;
+    frame2Time = currentTime + 200; // Postpone frame 2 to next cycle
+    frame1Time = currentTime + 200; // Postpone frame 1 to next cycle
+
     //    sendIniData();
   }
   else if (currentTime > frame2Time) // Sent every 1s (1000ms)
   {
-    frame2Time = currentTime + 500;
-    frame1Time = currentTime + 100; // Postpone frame 1 to next cycle
+    frame2Time = currentTime + 1000;
+    frame1Time = currentTime + 200; // Postpone frame 1 to next cycle
 
     sendUserData (FRSKY_TEMP1, eLeReS.tRX);
     sendUserData (FRSKY_TEMP2, eLeReS.tTX);
   }
   else if (currentTime > frame1Time) // Sent every 200ms
   {
-    frame1Time = currentTime + 100;
+    frame1Time = currentTime + 200;
 
     sendLinkData(eLeReS.uRX, eLeReS.aRX, eLeReS.RSSI, eLeReS.RCQ);
     sendUserData (FRSKY_GPS_ALT, eLeReS.h);
@@ -64,25 +78,25 @@ void sendAllData()
     sendUserData (FRSKY_GPS_LONG_A, eLeReS.LonA);
     sendUserData (FRSKY_GPS_LAT_B, eLeReS.LatB);
     sendUserData (FRSKY_GPS_LAT_A, eLeReS.LatA);
-    //sendUserData (FRSKY_RPM, 11111 / 60);
+    //sendUserData (FRSKY_RPM, 60);
     sendUserData (FRSKY_FUEL, eLeReS.FUEL);
   }
 }
 
-int ObliczFuel ()
+int ObliczFuel() //konwersja napięcia pakietu na wskaźnik fuel
 {
   float fuel;
   char text[50];
   float BAT_MIN = 85;
   float BAT_MAX = 126;
-  
-  fuel= eLeReS.uRX - BAT_MIN;
+
+  fuel = eLeReS.uRX - BAT_MIN;
   fuel = fuel * (100 / (BAT_MAX - BAT_MIN));
-  if (fuel < 0) fuel=0;
+  if (fuel < 0) fuel = 0;
   return fuel;
 }
 
-void sendUserData(uint8_t id, int16_t val)
+void sendUserData(uint8_t id, int16_t val) //wysłanie pojedyńczego pakietu USERDATA
 {
   int8_t d[2];
   int i;
@@ -107,7 +121,8 @@ void sendUserData(uint8_t id, int16_t val)
         FrskyData->write (0x5D);
         FrskyData->write (0x3D);
       }
-      else                     FrskyData->write (d[i]);
+      else
+        FrskyData->write (d[i]);
     }
 
     FrskyData->write (0x5E);   // End of frame
@@ -117,7 +132,7 @@ void sendUserData(uint8_t id, int16_t val)
   }
 }
 
-void sendLinkData(uint8_t A1, uint8_t A2, uint8_t Rssi, uint8_t Rcq)
+void sendLinkData(uint8_t A1, uint8_t A2, uint8_t Rssi, uint8_t Rcq) //wysłanie pakietu LINKDATA (A1,A2,RSSI,RCQ)
 {
   if (FrskyData != NULL)
   {
@@ -133,7 +148,7 @@ void sendLinkData(uint8_t A1, uint8_t A2, uint8_t Rssi, uint8_t Rcq)
   }
 }
 
-void readLRS()
+void readLRS() //czytanie eLeReSa obliczenia i pakowanie do tablicy
 {
   String str;
   String tmp;
@@ -156,13 +171,12 @@ void readLRS()
       String xval = getValue(str, ' ', x); //wydzielenie pary parametr=wartosc
       if (xval != NULL)
       {
-
         nazwa = getValue(xval, '=', 0);
         wartosc = getValue(xval, '=', 1);
 
         if (nazwa == "RSSI") {
           eLeReS.RSSI = wartosc.toInt();
-          RSSI_OK = 0;
+          RSSI_OK = 0; //zerowanie licznika poprawności RSSI
 #ifdef DEBUG
           sprintf(text, "rcv-eLeReS.RSSI:%d", eLeReS.RSSI);
           Serial.println(text);
@@ -181,20 +195,18 @@ void readLRS()
 #endif
         } else if (nazwa == "T") {
           eLeReS.tRX = wartosc.toInt();
-          //eLeReSData->println(eLeReS.tRX);
         } else if (nazwa == "I") {
           eLeReS.aRX = atof (wartosc.c_str()) * 10;
         } else if (nazwa == "UTX") {
           eLeReS.uTX = atof (wartosc.c_str()) * 10;
         } else if (nazwa == "TTX") {
           eLeReS.tTX = wartosc.toInt();
-          //eLeReSData->println(eLeReS.tTX);
         } else if (nazwa == "P") {
           eLeReS.P = wartosc.toInt();
         } else if (nazwa == "F") {
           eLeReS.TRYB = wartosc.toInt();
         } else if (nazwa == "HD") {
-          eLeReS.HDop = atof (wartosc.c_str()) * 10; //?
+          eLeReS.HDg = atof (wartosc.c_str()) * 10; //?
         } else if (nazwa == "f") {
           eLeReS.FIX = wartosc.toInt();
         } else if (nazwa == "s") {
@@ -206,14 +218,15 @@ void readLRS()
         } else if (nazwa == "h") {
           eLeReS.h = wartosc.toInt();
         } else if (nazwa == "Pos") {
-          tmp = getValue(wartosc, ',', 0); //pobranie lattitude
+          //pobranie lattitude
+          tmp = getValue(wartosc, ',', 0);
           lat = atof (tmp.c_str());
           eLeReS.LatB = (uint16_t)lat;
           lat = (lat - (float)eLeReS.LatB) * 60.0;
           eLeReS.LatB = eLeReS.LatB * 100 + (uint16_t)lat;
           eLeReS.LatA = (uint16_t)round((lat - (uint16_t)lat) * 10000.0);
-
-          tmp = getValue(wartosc, ',', 1); //pobranie longtitude
+          //pobranie longtitude
+          tmp = getValue(wartosc, ',', 1);
           lon = atof (tmp.c_str());
           eLeReS.LonB = (uint16_t)lon;
           lon = (lon - (float)eLeReS.LonB) * 60.0;
@@ -233,8 +246,8 @@ void readLRS()
       }
     }
   }
-  if (RSSI_OK > 500)
-  {
+  if (RSSI_OK > 500) //jeśli znika RSSI to kasujemy wszystkie wartośći z wyjątkiem pozycji z GPS
+  { //jest ona wysyłana do wyłączenia aparatury
     eLeReS.RSSI = NULL;
     eLeReS.RCQ = NULL;
     eLeReS.uRX = NULL;
@@ -244,7 +257,7 @@ void readLRS()
     eLeReS.tTX = NULL;
     eLeReS.P = NULL;
     eLeReS.TRYB = NULL;
-    eLeReS.HDop = NULL;
+    eLeReS.HDg = NULL;
     eLeReS.FIX = NULL;
     eLeReS.SAT = NULL;
     eLeReS.KURS = NULL;
@@ -259,6 +272,7 @@ void loop()
 {
   delay (50);
   readLRS();
+  delay (50);
   sendAllData();
 }
 
