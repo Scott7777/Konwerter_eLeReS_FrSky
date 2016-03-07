@@ -2,6 +2,8 @@
 #include "SoftwareSerial.h"
 #include "Konwerter.h"
 
+//#define DEBUG
+
 Stream* port;
 SoftwareSerial* FrskyData;
 SoftwareSerial* eLeReSData;
@@ -24,6 +26,9 @@ void setup()
   eLeReSData->begin(57600);
   pinMode(4, OUTPUT);
   pinMode(3, INPUT);
+#ifdef DEBUG
+  Serial.begin(9600);
+#endif
 
   pinMode(13, OUTPUT);
 }
@@ -55,9 +60,26 @@ void sendAllData()
     sendUserData (FRSKY_GPS_ALT, eLeReS.h);
     sendUserData (FRSKY_GPS_SPEED_B, eLeReS.v);
     sendUserData (FRSKY_GPS_COURSE_B, eLeReS.KURS);
+    sendUserData (FRSKY_GPS_LONG_B, eLeReS.LonB);
+    sendUserData (FRSKY_GPS_LONG_A, eLeReS.LonA);
+    sendUserData (FRSKY_GPS_LAT_B, eLeReS.LatB);
+    sendUserData (FRSKY_GPS_LAT_A, eLeReS.LatA);
     //sendUserData (FRSKY_RPM, 11111 / 60);
-    //sendUserData (FRSKY_FUEL, 23);
+    sendUserData (FRSKY_FUEL, eLeReS.FUEL);
   }
+}
+
+int ObliczFuel ()
+{
+  float fuel;
+  char text[50];
+  float BAT_MIN = 85;
+  float BAT_MAX = 126;
+  
+  fuel= eLeReS.uRX - BAT_MIN;
+  fuel = fuel * (100 / (BAT_MAX - BAT_MIN));
+  if (fuel < 0) fuel=0;
+  return fuel;
 }
 
 void sendUserData(uint8_t id, int16_t val)
@@ -118,6 +140,9 @@ void readLRS()
   String wynik;
   String nazwa;
   String wartosc;
+  char text[50];
+  float lat;
+  float lon;
 
   RSSI_OK++;
   if (eLeReSData->available() > 0) {
@@ -138,10 +163,22 @@ void readLRS()
         if (nazwa == "RSSI") {
           eLeReS.RSSI = wartosc.toInt();
           RSSI_OK = 0;
+#ifdef DEBUG
+          sprintf(text, "rcv-eLeReS.RSSI:%d", eLeReS.RSSI);
+          Serial.println(text);
+#endif
         } else if (nazwa == "RCQ") {
           eLeReS.RCQ = wartosc.toInt();
         } else if (nazwa == "U") {
           eLeReS.uRX = atof (wartosc.c_str()) * 10;
+          eLeReS.FUEL = ObliczFuel();
+          if (eLeReS.uRX > 124) eLeReS.uRX = 124; //błąd wyliczania namięcia powyżej 12,4v - do znalezienia
+#ifdef DEBUG
+          sprintf(text, "rcv-eLeReS.uRX:%d", eLeReS.uRX);
+          Serial.println(text);
+          sprintf(text, "rcv-eLeReS.FUEL:%d", eLeReS.FUEL);
+          Serial.println(text);
+#endif
         } else if (nazwa == "T") {
           eLeReS.tRX = wartosc.toInt();
           //eLeReSData->println(eLeReS.tRX);
@@ -153,7 +190,7 @@ void readLRS()
           eLeReS.tTX = wartosc.toInt();
           //eLeReSData->println(eLeReS.tTX);
         } else if (nazwa == "P") {
-          eLeReS.tTX = wartosc.toInt();
+          eLeReS.P = wartosc.toInt();
         } else if (nazwa == "F") {
           eLeReS.TRYB = wartosc.toInt();
         } else if (nazwa == "HD") {
@@ -168,23 +205,51 @@ void readLRS()
           eLeReS.v = wartosc.toInt();
         } else if (nazwa == "h") {
           eLeReS.h = wartosc.toInt();
-        }
+        } else if (nazwa == "Pos") {
+          tmp = getValue(wartosc, ',', 0); //pobranie lattitude
+          lat = atof (tmp.c_str());
+          eLeReS.LatB = (uint16_t)lat;
+          lat = (lat - (float)eLeReS.LatB) * 60.0;
+          eLeReS.LatB = eLeReS.LatB * 100 + (uint16_t)lat;
+          eLeReS.LatA = (uint16_t)round((lat - (uint16_t)lat) * 10000.0);
 
-        //eLeReSData->println(eLeReS.uRX);
-        //eLeReSData->println(wynik);
-        //wynik = "";
+          tmp = getValue(wartosc, ',', 1); //pobranie longtitude
+          lon = atof (tmp.c_str());
+          eLeReS.LonB = (uint16_t)lon;
+          lon = (lon - (float)eLeReS.LonB) * 60.0;
+          eLeReS.LonB = eLeReS.LonB * 100 + (uint16_t)lon;
+          eLeReS.LonA = (uint16_t)round((lon - (uint16_t)lon) * 10000.0);
+#ifdef DEBUG
+          sprintf(text, "rcv-eLeReS.LatB:%d", eLeReS.LatB);
+          Serial.println(text);
+          sprintf(text, "rcv-eLeReS.LatA:%d", eLeReS.LatA);
+          Serial.println(text);
+          sprintf(text, "rcv-eLeReS.LonB:%d", eLeReS.LonB);
+          Serial.println(text);
+          sprintf(text, "rcv-eLeReS.LonA:%d", eLeReS.LonA);
+          Serial.println(text);
+#endif
+        }
       }
     }
-
-    //eLeReSData->println(str);
-    //eLeReSData->println('-');
   }
   if (RSSI_OK > 500)
   {
     eLeReS.RSSI = NULL;
     eLeReS.RCQ = NULL;
     eLeReS.uRX = NULL;
+    eLeReS.tRX = NULL;
     eLeReS.aRX = NULL;
+    eLeReS.uTX = NULL;
+    eLeReS.tTX = NULL;
+    eLeReS.P = NULL;
+    eLeReS.TRYB = NULL;
+    eLeReS.HDop = NULL;
+    eLeReS.FIX = NULL;
+    eLeReS.SAT = NULL;
+    eLeReS.KURS = NULL;
+    eLeReS.v = NULL;
+    eLeReS.h = NULL;
   }
 }
 

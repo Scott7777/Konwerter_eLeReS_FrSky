@@ -22,6 +22,7 @@
 
 void blink1();
 String getValue(String data, char separator, int index);
+int ObliczFuel();
 
 struct eLeReS_data
 {
@@ -40,6 +41,11 @@ struct eLeReS_data
   int KURS;
   int v;
   int h;
+  int16_t LatB;
+  uint16_t LatA;
+  int16_t LonB;
+  uint16_t LonA;
+  int FUEL;
 };
 
 //CH to wartosci 8 kanalow RC z nadajnika w HEX 00-FF, 80 srodek.
