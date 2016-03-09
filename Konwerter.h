@@ -12,6 +12,15 @@
   GNU General Public License for more details.
 */
 
+// --- konfiguracja
+//#define DEBUG
+#define Baud_eLeReS 57600
+#define Baud_FrSky 9600
+#define Pin_eLeReS 3
+#define Pin_FrSky 2
+#define Pin_Led 13
+// --- koniec konfiguracji
+
 #define FRSKY_GPS_ALT       0x01
 #define FRSKY_TEMP1         0x02
 #define FRSKY_RPM           0x03
@@ -36,6 +45,7 @@
 void blink1();
 String getValue(String data, char separator, int index);
 int ObliczFuel();
+void Czysc_eLeReS();
 
 struct eLeReS_data
 {
@@ -61,6 +71,7 @@ struct eLeReS_data
   int FUEL;
 };
 
+// --- eLeReS
 //CH to wartosci 8 kanalow RC z nadajnika w HEX 00-FF, 80 srodek.
 //P to cisnienie z czujnika baro.
 //F to tryb lotu MuliWii.

@@ -16,8 +16,6 @@
 #include "SoftwareSerial.h"
 #include "Konwerter.h"
 
-//#define DEBUG
-
 Stream* port;
 SoftwareSerial* FrskyData;
 SoftwareSerial* eLeReSData;
@@ -29,21 +27,20 @@ unsigned int RSSI_OK;
 
 void setup()
 {
-  FrskyData = new SoftwareSerial(2, 2); //port dla danych frsky, na tym pinie nadajemy telemetrie
+  FrskyData = new SoftwareSerial(Pin_FrSky, Pin_FrSky); //port dla danych frsky, na tym pinie nadajemy telemetrie
   port = FrskyData;
-  FrskyData->begin(9600); //prędkość portu wysyłania telemetrii
-  pinMode(2, OUTPUT);
+  FrskyData->begin(Baud_FrSky); //prędkość portu wysyłania telemetrii
+  pinMode(Pin_FrSky, OUTPUT);
 
-  eLeReSData = new SoftwareSerial(3, 4); //port do nasłuchiwania eLeReSa
+  eLeReSData = new SoftwareSerial(Pin_eLeReS, Pin_eLeReS); //port do nasłuchiwania eLeReSa
   port = eLeReSData;
   //58823 baud
-  eLeReSData->begin(57600); //prędkość portu eLeReSa
-  pinMode(4, OUTPUT);
-  pinMode(3, INPUT);
+  eLeReSData->begin(Baud_eLeReS); //prędkość portu eLeReSa
+  pinMode(Pin_eLeReS, INPUT);
 #ifdef DEBUG
   Serial.begin(9600); //port sprzętowy do komunikatów debug.
 #endif
-  pinMode(13, OUTPUT);
+  pinMode(Pin_Led, OUTPUT);
 }
 
 
@@ -69,7 +66,11 @@ void sendAllData() //tworzenie kompletnej ramki danych do wysłania
   else if (currentTime > frame1Time) // Sent every 200ms
   {
     frame1Time = currentTime + 200;
-
+    RSSI_OK++;
+    if (RSSI_OK > 25)           //jeśli znika RSSI to kasujemy wszystkie wartośći z wyjątkiem pozycji z GPS
+    {                           //jest ona wysyłana do wyłączenia aparatury
+      Czysc_eLeReS();           //zanik RSSI wykrywam po 25x200ms = 5s
+    }
     sendLinkData(eLeReS.uRX, eLeReS.aRX, eLeReS.RSSI, eLeReS.RCQ);
     sendUserData (FRSKY_GPS_ALT, eLeReS.h);
     sendUserData (FRSKY_GPS_SPEED_B, eLeReS.v);
@@ -159,14 +160,13 @@ void readLRS() //czytanie eLeReSa obliczenia i pakowanie do tablicy
   float lat;
   float lon;
 
-  RSSI_OK++;
   if (eLeReSData->available() > 0) {
-    delay(1);
-    blink1();
-    str = eLeReSData->readStringUntil('\n');
-    str.replace(", ", ",");
 
-    for (uint8_t x = 0; x < 20; x++)
+    //str = eLeReSData->readStringUntil('\n');
+    str = eLeReSData->readString();
+    str.replace(", ", ",");
+    blink1();
+    for (uint8_t x = 0; x < 10; x++)
     {
       String xval = getValue(str, ' ', x); //wydzielenie pary parametr=wartosc
       if (xval != NULL)
@@ -174,7 +174,7 @@ void readLRS() //czytanie eLeReSa obliczenia i pakowanie do tablicy
         nazwa = getValue(xval, '=', 0);
         wartosc = getValue(xval, '=', 1);
 
-        if (nazwa == "RSSI") {
+        if (nazwa == "RSSI" or nazwa == "SSI") {
           eLeReS.RSSI = wartosc.toInt();
           RSSI_OK = 0; //zerowanie licznika poprawności RSSI
 #ifdef DEBUG
@@ -217,7 +217,7 @@ void readLRS() //czytanie eLeReSa obliczenia i pakowanie do tablicy
           eLeReS.v = wartosc.toInt();
         } else if (nazwa == "h") {
           eLeReS.h = wartosc.toInt();
-        } else if (nazwa == "Pos") {
+        } else if (nazwa == "Pos" or nazwa == "os") {
           //pobranie lattitude
           tmp = getValue(wartosc, ',', 0);
           lat = atof (tmp.c_str());
@@ -246,33 +246,32 @@ void readLRS() //czytanie eLeReSa obliczenia i pakowanie do tablicy
       }
     }
   }
-  if (RSSI_OK > 500) //jeśli znika RSSI to kasujemy wszystkie wartośći z wyjątkiem pozycji z GPS
-  { //jest ona wysyłana do wyłączenia aparatury
-    eLeReS.RSSI = NULL;
-    eLeReS.RCQ = NULL;
-    eLeReS.uRX = NULL;
-    eLeReS.tRX = NULL;
-    eLeReS.aRX = NULL;
-    eLeReS.uTX = NULL;
-    eLeReS.tTX = NULL;
-    eLeReS.P = NULL;
-    eLeReS.TRYB = NULL;
-    eLeReS.HDg = NULL;
-    eLeReS.FIX = NULL;
-    eLeReS.SAT = NULL;
-    eLeReS.KURS = NULL;
-    eLeReS.v = NULL;
-    eLeReS.h = NULL;
-  }
 }
 
-
+void Czysc_eLeReS()
+{
+  eLeReS.RSSI = NULL;
+  eLeReS.RCQ = NULL;
+  eLeReS.uRX = NULL;
+  eLeReS.tRX = NULL;
+  eLeReS.aRX = NULL;
+  eLeReS.uTX = NULL;
+  eLeReS.tTX = NULL;
+  eLeReS.P = NULL;
+  eLeReS.TRYB = NULL;
+  eLeReS.HDg = NULL;
+  eLeReS.FIX = NULL;
+  eLeReS.SAT = NULL;
+  eLeReS.KURS = NULL;
+  eLeReS.v = NULL;
+  eLeReS.h = NULL;
+  eLeReS.FUEL = NULL;
+}
 
 void loop()
 {
-  delay (50);
   readLRS();
-  delay (50);
+
   sendAllData();
 }
 

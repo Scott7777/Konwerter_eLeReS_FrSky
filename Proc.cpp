@@ -16,10 +16,9 @@
 #include "Konwerter.h"
 
 void blink1() {
-  digitalWrite(13, HIGH);   // turn the LED on (HIGH is the voltage level)
+  digitalWrite(Pin_Led, HIGH);   // turn the LED on (HIGH is the voltage level)
   delay(100);              // wait 
-  digitalWrite(13, LOW);    // turn the LED off by making the voltage LOW
-  delay(100);              // wait 
+  digitalWrite(Pin_Led, LOW);    // turn the LED off by making the voltage LOW
 }
 
 String getValue(String data, char separator, int index)
