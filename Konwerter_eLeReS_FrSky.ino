@@ -38,7 +38,7 @@ void setup()
   eLeReSData->begin(Baud_eLeReS); //prędkość portu eLeReSa
   pinMode(Pin_eLeReS, INPUT);
 #ifdef DEBUG
-  Serial.begin(9600); //port sprzętowy do komunikatów debug.
+  Serial.begin(19200); //port sprzętowy do komunikatów debug.
 #endif
   pinMode(Pin_Led, OUTPUT);
 }
@@ -68,8 +68,8 @@ void sendAllData() //tworzenie kompletnej ramki danych do wysłania
     frame1Time = currentTime + 200;
     RSSI_OK++;
     if (RSSI_OK > 25)           //jeśli znika RSSI to kasujemy wszystkie wartośći z wyjątkiem pozycji z GPS
-    {                           //jest ona wysyłana do wyłączenia aparatury
-      Czysc_eLeReS();           //zanik RSSI wykrywam po 25x200ms = 5s
+    { //jest ona wysyłana do wyłączenia aparatury
+      //Czysc_eLeReS();           //zanik RSSI wykrywam po 25x200ms = 5s
     }
     sendLinkData(eLeReS.uRX, eLeReS.aRX, eLeReS.RSSI, eLeReS.RCQ);
     sendUserData (FRSKY_GPS_ALT, eLeReS.h);
@@ -129,7 +129,7 @@ void sendUserData(uint8_t id, int16_t val) //wysłanie pojedyńczego pakietu USE
     FrskyData->write (0x5E);   // End of frame
     FrskyData->write (0x7E);   // End of frame
 
-    if (FrskyData != NULL) port->flush();
+    if (FrskyData != NULL) FrskyData->flush();
   }
 }
 
@@ -145,7 +145,7 @@ void sendLinkData(uint8_t A1, uint8_t A2, uint8_t Rssi, uint8_t Rcq) //wysłanie
     FrskyData->write (Rcq);
     FrskyData->write (0x7E);   // End of frame
 
-    if (FrskyData != NULL) port->flush();
+    if (FrskyData != NULL) FrskyData->flush();
   }
 }
 
@@ -162,8 +162,12 @@ void readLRS() //czytanie eLeReSa obliczenia i pakowanie do tablicy
 
   if (eLeReSData->available() > 0) {
 
-    //str = eLeReSData->readStringUntil('\n');
-    str = eLeReSData->readString();
+    str = eLeReSData->readStringUntil('\n');
+    //str = eLeReSData->readString();
+#ifdef DEBUG
+    Serial.print ("rcv-eLeReS.Full_string: ");
+    Serial.println(str);
+#endif
     str.replace(", ", ",");
     blink1();
     for (uint8_t x = 0; x < 10; x++)
@@ -178,45 +182,97 @@ void readLRS() //czytanie eLeReSa obliczenia i pakowanie do tablicy
           eLeReS.RSSI = wartosc.toInt();
           RSSI_OK = 0; //zerowanie licznika poprawności RSSI
 #ifdef DEBUG
-          sprintf(text, "rcv-eLeReS.RSSI:%d", eLeReS.RSSI);
-          Serial.println(text);
+          sprintf(text, "rcv-eLeReS.RSSI:%d ", eLeReS.RSSI);
+          Serial.print(text);
 #endif
         } else if (nazwa == "RCQ") {
           eLeReS.RCQ = wartosc.toInt();
+#ifdef DEBUG
+          sprintf(text, "rcv-eLeReS.RCQ:%d ", eLeReS.RCQ);
+          Serial.print(text);
+#endif
         } else if (nazwa == "U") {
           eLeReS.uRX = atof (wartosc.c_str()) * 10;
           eLeReS.FUEL = ObliczFuel();
           if (eLeReS.uRX > 124) eLeReS.uRX = 124; //błąd wyliczania namięcia powyżej 12,4v - do znalezienia
 #ifdef DEBUG
-          sprintf(text, "rcv-eLeReS.uRX:%d", eLeReS.uRX);
-          Serial.println(text);
-          sprintf(text, "rcv-eLeReS.FUEL:%d", eLeReS.FUEL);
-          Serial.println(text);
+          sprintf(text, "rcv-eLeReS.uRX:%d ", eLeReS.uRX);
+          Serial.print(text);
+          sprintf(text, "rcv-eLeReS.FUEL:%d ", eLeReS.FUEL);
+          Serial.print(text);
 #endif
         } else if (nazwa == "T") {
           eLeReS.tRX = wartosc.toInt();
+#ifdef DEBUG
+          sprintf(text, "rcv-eLeReS.tRX:%d ", eLeReS.tRX);
+          Serial.print(text);
+#endif
         } else if (nazwa == "I") {
           eLeReS.aRX = atof (wartosc.c_str()) * 10;
+#ifdef DEBUG
+          sprintf(text, "rcv-eLeReS.aRX:%d ", eLeReS.aRX);
+          Serial.print(text);
+#endif
         } else if (nazwa == "UTX") {
           eLeReS.uTX = atof (wartosc.c_str()) * 10;
+#ifdef DEBUG
+          sprintf(text, "rcv-eLeReS.uTX:%d ", eLeReS.uTX);
+          Serial.print(text);
+#endif
         } else if (nazwa == "TTX") {
           eLeReS.tTX = wartosc.toInt();
+#ifdef DEBUG
+          sprintf(text, "rcv-eLeReS.tTX:%d ", eLeReS.tTX);
+          Serial.print(text);
+#endif
         } else if (nazwa == "P") {
           eLeReS.P = wartosc.toInt();
+#ifdef DEBUG
+          sprintf(text, "rcv-eLeReS.P:%d ", eLeReS.P);
+          Serial.print(text);
+#endif
         } else if (nazwa == "F") {
           eLeReS.TRYB = wartosc.toInt();
+#ifdef DEBUG
+          sprintf(text, "rcv-eLeReS.TRYB:%d ", eLeReS.TRYB);
+          Serial.print(text);
+#endif
         } else if (nazwa == "HD") {
           eLeReS.HDg = atof (wartosc.c_str()) * 10; //?
+#ifdef DEBUG
+          sprintf(text, "rcv-eLeReS.HDg:%d ", eLeReS.HDg);
+          Serial.print(text);
+#endif
         } else if (nazwa == "f") {
           eLeReS.FIX = wartosc.toInt();
+#ifdef DEBUG
+          sprintf(text, "rcv-eLeReS.FIX:%d ", eLeReS.FIX);
+          Serial.print(text);
+#endif
         } else if (nazwa == "s") {
           eLeReS.SAT = wartosc.toInt();
+#ifdef DEBUG
+          sprintf(text, "rcv-eLeReS.SAT:%d ", eLeReS.SAT);
+          Serial.print(text);
+#endif
         } else if (nazwa == "c") {
           eLeReS.KURS = wartosc.toInt();
+#ifdef DEBUG
+          sprintf(text, "rcv-eLeReS.c:%d ", eLeReS.KURS);
+          Serial.print(text);
+#endif
         } else if (nazwa == "v") {
           eLeReS.v = wartosc.toInt();
+#ifdef DEBUG
+          sprintf(text, "rcv-eLeReS.v:%d ", eLeReS.v);
+          Serial.print(text);
+#endif
         } else if (nazwa == "h") {
           eLeReS.h = wartosc.toInt();
+#ifdef DEBUG
+          sprintf(text, "rcv-eLeReS.h:%d ", eLeReS.h);
+          Serial.print(text);
+#endif
         } else if (nazwa == "Pos" or nazwa == "os") {
           //pobranie lattitude
           tmp = getValue(wartosc, ',', 0);
@@ -233,18 +289,19 @@ void readLRS() //czytanie eLeReSa obliczenia i pakowanie do tablicy
           eLeReS.LonB = eLeReS.LonB * 100 + (uint16_t)lon;
           eLeReS.LonA = (uint16_t)round((lon - (uint16_t)lon) * 10000.0);
 #ifdef DEBUG
-          sprintf(text, "rcv-eLeReS.LatB:%d", eLeReS.LatB);
-          Serial.println(text);
-          sprintf(text, "rcv-eLeReS.LatA:%d", eLeReS.LatA);
-          Serial.println(text);
-          sprintf(text, "rcv-eLeReS.LonB:%d", eLeReS.LonB);
-          Serial.println(text);
-          sprintf(text, "rcv-eLeReS.LonA:%d", eLeReS.LonA);
-          Serial.println(text);
+          sprintf(text, "rcv-eLeReS.LatB:%d ", eLeReS.LatB);
+          Serial.print(text);
+          sprintf(text, "rcv-eLeReS.LatA:%d ", eLeReS.LatA);
+          Serial.print(text);
+          sprintf(text, "rcv-eLeReS.LonB:%d ", eLeReS.LonB);
+          Serial.print(text);
+          sprintf(text, "rcv-eLeReS.LonA:%d ", eLeReS.LonA);
+          Serial.print(text);
 #endif
         }
       }
     }
+    Serial.println();
   }
 }
 
@@ -271,7 +328,7 @@ void Czysc_eLeReS()
 void loop()
 {
   readLRS();
-
+  //delay(50);
   sendAllData();
 }
 

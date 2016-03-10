@@ -1,6 +1,17 @@
 # Konwerter_eLeReS_FrSky
 Konwerter telemetrii eLeReSa dla TG9XR
 
+10.03.2016
+Pierwsza Beta.
+Pod³¹czone do eLeReSa i sprawdzone.
+Dodany szczegó³owy debug.
+
+Dzia³a - mo¿na testowaæ.
+
+ToDO:
+Czasem dostanie œmieci z eleresa. Trzeba to jakoœ odfiltrowaæ.
+
+
 07.03.2016
 Dzia³a czytanie z eLeReSa:
 - RSSI
