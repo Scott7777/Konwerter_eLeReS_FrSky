@@ -57,6 +57,7 @@ struct eLeReS_data
   int P;
   int TRYB;
   int uTX;
+  int STX;
   int tTX;
   int HDg;
   int FIX;

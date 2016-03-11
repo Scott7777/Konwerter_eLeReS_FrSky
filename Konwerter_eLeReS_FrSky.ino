@@ -170,7 +170,7 @@ void readLRS() //czytanie eLeReSa obliczenia i pakowanie do tablicy
 #endif
     str.replace(", ", ",");
     blink1();
-    for (uint8_t x = 0; x < 10; x++)
+    for (uint8_t x = 0; x < 20; x++)
     {
       String xval = getValue(str, ' ', x); //wydzielenie pary parametr=wartosc
       if (xval != NULL)
@@ -178,20 +178,20 @@ void readLRS() //czytanie eLeReSa obliczenia i pakowanie do tablicy
         nazwa = getValue(xval, '=', 0);
         wartosc = getValue(xval, '=', 1);
 
-        if (nazwa == "RSSI" or nazwa == "SSI") {
+        if ((nazwa == "RSSI" or nazwa == "SSI") and wartosc.length() == 3) {
           eLeReS.RSSI = wartosc.toInt();
           RSSI_OK = 0; //zerowanie licznika poprawności RSSI
 #ifdef DEBUG
           sprintf(text, "rcv-eLeReS.RSSI:%d ", eLeReS.RSSI);
           Serial.print(text);
 #endif
-        } else if (nazwa == "RCQ") {
+        } else if (nazwa == "RCQ" and wartosc.length() == 3) {
           eLeReS.RCQ = wartosc.toInt();
 #ifdef DEBUG
           sprintf(text, "rcv-eLeReS.RCQ:%d ", eLeReS.RCQ);
           Serial.print(text);
 #endif
-        } else if (nazwa == "U") {
+        } else if (nazwa == "U" and wartosc.length() == 5) {
           eLeReS.uRX = atof (wartosc.c_str()) * 10;
           eLeReS.FUEL = ObliczFuel();
           if (eLeReS.uRX > 124) eLeReS.uRX = 124; //błąd wyliczania namięcia powyżej 12,4v - do znalezienia
@@ -201,79 +201,85 @@ void readLRS() //czytanie eLeReSa obliczenia i pakowanie do tablicy
           sprintf(text, "rcv-eLeReS.FUEL:%d ", eLeReS.FUEL);
           Serial.print(text);
 #endif
-        } else if (nazwa == "T") {
+        } else if (nazwa == "T" and (wartosc.length() == 5 or wartosc.length() == 6)) {
           eLeReS.tRX = wartosc.toInt();
 #ifdef DEBUG
           sprintf(text, "rcv-eLeReS.tRX:%d ", eLeReS.tRX);
           Serial.print(text);
 #endif
-        } else if (nazwa == "I") {
+        } else if (nazwa == "I" and wartosc.length() == 5) {
           eLeReS.aRX = atof (wartosc.c_str()) * 10;
 #ifdef DEBUG
           sprintf(text, "rcv-eLeReS.aRX:%d ", eLeReS.aRX);
           Serial.print(text);
 #endif
-        } else if (nazwa == "UTX") {
+        } else if (nazwa == "UTX" and wartosc.length() == 5) {
           eLeReS.uTX = atof (wartosc.c_str()) * 10;
 #ifdef DEBUG
           sprintf(text, "rcv-eLeReS.uTX:%d ", eLeReS.uTX);
           Serial.print(text);
 #endif
-        } else if (nazwa == "TTX") {
+        } else if (nazwa == "STX" and wartosc.length() == 3) {
+          eLeReS.STX = wartosc.toInt();
+#ifdef DEBUG
+          sprintf(text, "rcv-eLeReS.STX:%d ", eLeReS.STX);
+          Serial.print(text);
+#endif
+        } else if (nazwa == "TTX" and (wartosc.length() == 5 or wartosc.length() == 6)) {
           eLeReS.tTX = wartosc.toInt();
 #ifdef DEBUG
           sprintf(text, "rcv-eLeReS.tTX:%d ", eLeReS.tTX);
           Serial.print(text);
 #endif
-        } else if (nazwa == "P") {
+        } else if (nazwa == "P" and wartosc.length() == 5) {
           eLeReS.P = wartosc.toInt();
 #ifdef DEBUG
           sprintf(text, "rcv-eLeReS.P:%d ", eLeReS.P);
           Serial.print(text);
 #endif
-        } else if (nazwa == "F") {
+        } else if (nazwa == "F" and wartosc.length() == 1) {
           eLeReS.TRYB = wartosc.toInt();
 #ifdef DEBUG
           sprintf(text, "rcv-eLeReS.TRYB:%d ", eLeReS.TRYB);
           Serial.print(text);
 #endif
-        } else if (nazwa == "HD") {
+        } else if (nazwa == "HD" and wartosc.length() == 4) {
           eLeReS.HDg = atof (wartosc.c_str()) * 10; //?
 #ifdef DEBUG
           sprintf(text, "rcv-eLeReS.HDg:%d ", eLeReS.HDg);
           Serial.print(text);
 #endif
-        } else if (nazwa == "f") {
+        } else if (nazwa == "f" and wartosc.length() == 1) {
           eLeReS.FIX = wartosc.toInt();
 #ifdef DEBUG
           sprintf(text, "rcv-eLeReS.FIX:%d ", eLeReS.FIX);
           Serial.print(text);
 #endif
-        } else if (nazwa == "s") {
+        } else if (nazwa == "s" and wartosc.length() == 2) {
           eLeReS.SAT = wartosc.toInt();
 #ifdef DEBUG
           sprintf(text, "rcv-eLeReS.SAT:%d ", eLeReS.SAT);
           Serial.print(text);
 #endif
-        } else if (nazwa == "c") {
+        } else if (nazwa == "c" and wartosc.length() == 3) {
           eLeReS.KURS = wartosc.toInt();
 #ifdef DEBUG
           sprintf(text, "rcv-eLeReS.c:%d ", eLeReS.KURS);
           Serial.print(text);
 #endif
-        } else if (nazwa == "v") {
+        } else if (nazwa == "v" and wartosc.length() == 3) {
           eLeReS.v = wartosc.toInt();
 #ifdef DEBUG
           sprintf(text, "rcv-eLeReS.v:%d ", eLeReS.v);
           Serial.print(text);
 #endif
-        } else if (nazwa == "h") {
+        } else if (nazwa == "h" and wartosc.length() == 4) {
           eLeReS.h = wartosc.toInt();
 #ifdef DEBUG
           sprintf(text, "rcv-eLeReS.h:%d ", eLeReS.h);
           Serial.print(text);
 #endif
-        } else if (nazwa == "Pos" or nazwa == "os") {
+        } else if ((nazwa == "Pos" or nazwa == "os") and wartosc.length() == 22) {
           //pobranie lattitude
           tmp = getValue(wartosc, ',', 0);
           lat = atof (tmp.c_str());
