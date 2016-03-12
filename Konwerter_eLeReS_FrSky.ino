@@ -16,6 +16,9 @@
 #include "SoftwareSerial.h"
 #include "Konwerter.h"
 
+#ifdef DEBUG
+char text[50];
+#endif
 Stream* port;
 SoftwareSerial* FrskyData;
 SoftwareSerial* eLeReSData;
@@ -23,7 +26,25 @@ uint32_t frame1Time;
 uint32_t frame2Time;
 uint32_t frame3Time;
 struct eLeReS_data eLeReS;
+
+//zmienne do sprzwdzwnia czy dalej nadawane są te parametry
 unsigned int RSSI_OK;
+unsigned int RCQ_OK;
+unsigned int uRX_OK;
+unsigned int tRX_OK;
+unsigned int STX_OK;
+unsigned int aRX_OK;
+unsigned int uTX_OK;
+unsigned int tTX_OK;
+unsigned int P_OK;
+unsigned int TRYB_OK;
+unsigned int HDg_OK;
+unsigned int FIX_OK;
+unsigned int SAT_OK;
+unsigned int KURS_OK;
+unsigned int v_OK;
+unsigned int h_OK;
+unsigned int Pos_OK;
 
 void setup()
 {
@@ -61,16 +82,13 @@ void sendAllData() //tworzenie kompletnej ramki danych do wysłania
     frame1Time = currentTime + 200; // Postpone frame 1 to next cycle
 
     sendUserData (FRSKY_TEMP1, eLeReS.tRX);
-    sendUserData (FRSKY_TEMP2, eLeReS.tTX);
+    //sendUserData (FRSKY_TEMP2, eLeReS.tTX); //nie wysyłam temperatury nadajnika - nie jest to telemetria z modelu
   }
   else if (currentTime > frame1Time) // Sent every 200ms
   {
     frame1Time = currentTime + 200;
-    RSSI_OK++;
-    if (RSSI_OK > 25)           //jeśli znika RSSI to kasujemy wszystkie wartośći z wyjątkiem pozycji z GPS
-    { //jest ona wysyłana do wyłączenia aparatury
-      //Czysc_eLeReS();           //zanik RSSI wykrywam po 25x200ms = 5s
-    }
+    Parametry_OK(25); //zanik parametru telemetrii wykrywam po 25x200ms = 5s
+
     sendLinkData(eLeReS.uRX, eLeReS.aRX, eLeReS.RSSI, eLeReS.RCQ);
     sendUserData (FRSKY_GPS_ALT, eLeReS.h);
     sendUserData (FRSKY_GPS_SPEED_B, eLeReS.v);
@@ -101,7 +119,7 @@ void sendUserData(uint8_t id, int16_t val) //wysłanie pojedyńczego pakietu USE
 {
   int8_t d[2];
   int i;
-  if (FrskyData != NULL)
+  if (FrskyData != NULL and val != NULL) //nie wysyłam parametru o wartośći NULL
   {
     d[0] =  val & 0x00ff;
     d[1] = (val & 0xff00) >> 8;
@@ -130,12 +148,14 @@ void sendUserData(uint8_t id, int16_t val) //wysłanie pojedyńczego pakietu USE
     FrskyData->write (0x7E);   // End of frame
 
     if (FrskyData != NULL) FrskyData->flush();
+    //sprintf(text, "Wyslana ramka frsky UserData:%d, %d",id,val );
+    //Serial.println(text);
   }
 }
 
 void sendLinkData(uint8_t A1, uint8_t A2, uint8_t Rssi, uint8_t Rcq) //wysłanie pakietu LINKDATA (A1,A2,RSSI,RCQ)
 {
-  if (FrskyData != NULL)
+  if (FrskyData != NULL and Rssi != NULL) //nie wysyłam parametru o wartośći NULL
   {
     FrskyData->write (0x7E);
     FrskyData->write (0xFE);
@@ -146,6 +166,8 @@ void sendLinkData(uint8_t A1, uint8_t A2, uint8_t Rssi, uint8_t Rcq) //wysłanie
     FrskyData->write (0x7E);   // End of frame
 
     if (FrskyData != NULL) FrskyData->flush();
+    //sprintf(text, "Wyslana ramka frsky LinkData RSSI:%d",Rssi );
+    //Serial.println(text);
   }
 }
 
@@ -156,7 +178,6 @@ void readLRS() //czytanie eLeReSa obliczenia i pakowanie do tablicy
   String wynik;
   String nazwa;
   String wartosc;
-  char text[50];
   float lat;
   float lon;
 
@@ -187,6 +208,7 @@ void readLRS() //czytanie eLeReSa obliczenia i pakowanie do tablicy
 #endif
         } else if (nazwa == "RCQ" and wartosc.length() == 3) {
           eLeReS.RCQ = wartosc.toInt();
+          RCQ_OK = 0;
 #ifdef DEBUG
           sprintf(text, "rcv-eLeReS.RCQ:%d ", eLeReS.RCQ);
           Serial.print(text);
@@ -195,6 +217,7 @@ void readLRS() //czytanie eLeReSa obliczenia i pakowanie do tablicy
           eLeReS.uRX = atof (wartosc.c_str()) * 10;
           eLeReS.FUEL = ObliczFuel();
           if (eLeReS.uRX > 124) eLeReS.uRX = 124; //błąd wyliczania namięcia powyżej 12,4v - do znalezienia
+          uRX_OK = 0;
 #ifdef DEBUG
           sprintf(text, "rcv-eLeReS.uRX:%d ", eLeReS.uRX);
           Serial.print(text);
@@ -203,78 +226,91 @@ void readLRS() //czytanie eLeReSa obliczenia i pakowanie do tablicy
 #endif
         } else if (nazwa == "T" and (wartosc.length() == 5 or wartosc.length() == 6)) {
           eLeReS.tRX = wartosc.toInt();
+          tRX_OK = 0;
 #ifdef DEBUG
           sprintf(text, "rcv-eLeReS.tRX:%d ", eLeReS.tRX);
           Serial.print(text);
 #endif
         } else if (nazwa == "I" and wartosc.length() == 5) {
           eLeReS.aRX = atof (wartosc.c_str()) * 10;
+          aRX_OK = 0;
 #ifdef DEBUG
           sprintf(text, "rcv-eLeReS.aRX:%d ", eLeReS.aRX);
           Serial.print(text);
 #endif
         } else if (nazwa == "UTX" and wartosc.length() == 5) {
           eLeReS.uTX = atof (wartosc.c_str()) * 10;
+          uTX_OK = 0;
 #ifdef DEBUG
           sprintf(text, "rcv-eLeReS.uTX:%d ", eLeReS.uTX);
           Serial.print(text);
 #endif
         } else if (nazwa == "STX" and wartosc.length() == 3) {
           eLeReS.STX = wartosc.toInt();
+          STX_OK = 0;
 #ifdef DEBUG
           sprintf(text, "rcv-eLeReS.STX:%d ", eLeReS.STX);
           Serial.print(text);
 #endif
         } else if (nazwa == "TTX" and (wartosc.length() == 5 or wartosc.length() == 6)) {
           eLeReS.tTX = wartosc.toInt();
+          tTX_OK = 0;
 #ifdef DEBUG
           sprintf(text, "rcv-eLeReS.tTX:%d ", eLeReS.tTX);
           Serial.print(text);
 #endif
         } else if (nazwa == "P" and wartosc.length() == 5) {
           eLeReS.P = wartosc.toInt();
+          P_OK = 0;
 #ifdef DEBUG
           sprintf(text, "rcv-eLeReS.P:%d ", eLeReS.P);
           Serial.print(text);
 #endif
         } else if (nazwa == "F" and wartosc.length() == 1) {
           eLeReS.TRYB = wartosc.toInt();
+          TRYB_OK = 0;
 #ifdef DEBUG
           sprintf(text, "rcv-eLeReS.TRYB:%d ", eLeReS.TRYB);
           Serial.print(text);
 #endif
         } else if (nazwa == "HD" and wartosc.length() == 4) {
           eLeReS.HDg = atof (wartosc.c_str()) * 10; //?
+          HDg_OK = 0;
 #ifdef DEBUG
           sprintf(text, "rcv-eLeReS.HDg:%d ", eLeReS.HDg);
           Serial.print(text);
 #endif
         } else if (nazwa == "f" and wartosc.length() == 1) {
           eLeReS.FIX = wartosc.toInt();
+          FIX_OK = 0;
 #ifdef DEBUG
           sprintf(text, "rcv-eLeReS.FIX:%d ", eLeReS.FIX);
           Serial.print(text);
 #endif
         } else if (nazwa == "s" and wartosc.length() == 2) {
           eLeReS.SAT = wartosc.toInt();
+          SAT_OK = 0;
 #ifdef DEBUG
           sprintf(text, "rcv-eLeReS.SAT:%d ", eLeReS.SAT);
           Serial.print(text);
 #endif
         } else if (nazwa == "c" and wartosc.length() == 3) {
           eLeReS.KURS = wartosc.toInt();
+          KURS_OK = 0;
 #ifdef DEBUG
           sprintf(text, "rcv-eLeReS.c:%d ", eLeReS.KURS);
           Serial.print(text);
 #endif
         } else if (nazwa == "v" and wartosc.length() == 3) {
           eLeReS.v = wartosc.toInt();
+          v_OK = 0;
 #ifdef DEBUG
           sprintf(text, "rcv-eLeReS.v:%d ", eLeReS.v);
           Serial.print(text);
 #endif
         } else if (nazwa == "h" and wartosc.length() == 4) {
           eLeReS.h = wartosc.toInt();
+          h_OK = 0;
 #ifdef DEBUG
           sprintf(text, "rcv-eLeReS.h:%d ", eLeReS.h);
           Serial.print(text);
@@ -294,6 +330,7 @@ void readLRS() //czytanie eLeReSa obliczenia i pakowanie do tablicy
           lon = (lon - (float)eLeReS.LonB) * 60.0;
           eLeReS.LonB = eLeReS.LonB * 100 + (uint16_t)lon;
           eLeReS.LonA = (uint16_t)round((lon - (uint16_t)lon) * 10000.0);
+          Pos_OK = 0;
 #ifdef DEBUG
           sprintf(text, "rcv-eLeReS.LatB:%d ", eLeReS.LatB);
           Serial.print(text);
@@ -311,24 +348,47 @@ void readLRS() //czytanie eLeReSa obliczenia i pakowanie do tablicy
   }
 }
 
-void Czysc_eLeReS()
+void Parametry_OK(int okres)
 {
-  eLeReS.RSSI = NULL;
-  eLeReS.RCQ = NULL;
-  eLeReS.uRX = NULL;
-  eLeReS.tRX = NULL;
-  eLeReS.aRX = NULL;
-  eLeReS.uTX = NULL;
-  eLeReS.tTX = NULL;
-  eLeReS.P = NULL;
-  eLeReS.TRYB = NULL;
-  eLeReS.HDg = NULL;
-  eLeReS.FIX = NULL;
-  eLeReS.SAT = NULL;
-  eLeReS.KURS = NULL;
-  eLeReS.v = NULL;
-  eLeReS.h = NULL;
-  eLeReS.FUEL = NULL;
+  RSSI_OK++;  //co cykl zwiększam o jeden wartość parametru
+  RCQ_OK++;
+  uRX_OK++;
+  tRX_OK++;
+  STX_OK++;
+  aRX_OK++;
+  uTX_OK++;
+  tTX_OK++;
+  P_OK++;
+  TRYB_OK++;
+  HDg_OK++;
+  FIX_OK++;
+  SAT_OK++;
+  KURS_OK++;
+  v_OK++;
+  h_OK++;
+  Pos_OK++;
+
+  if (RSSI_OK > okres)  eLeReS.RSSI = NULL; //jeśli parametr osiągnie pewną wartość - oznacza to , że przez dłuższy okres nie był odświeżony - znaczy nie jest nadawany w telemetrii. Zeruję go.
+  if (RCQ_OK > okres) eLeReS.RCQ = NULL;
+  if (uRX_OK > okres)   eLeReS.uRX = NULL;
+  if (tRX_OK > okres)   eLeReS.tRX = NULL;
+  if (STX_OK > okres)   eLeReS.STX = NULL;
+  if (aRX_OK > okres)   eLeReS.aRX = NULL;
+  if (uTX_OK > okres)   {
+    eLeReS.uTX = NULL;
+    eLeReS.FUEL = NULL;
+  }
+  if (tTX_OK > okres)   eLeReS.tTX = NULL;
+  if (P_OK > okres)   eLeReS.P = NULL;
+  if (TRYB_OK > okres)   eLeReS.TRYB = NULL;
+  if (HDg_OK > okres)   eLeReS.HDg = NULL;
+  if (FIX_OK > okres)   eLeReS.FIX = NULL;
+  if (SAT_OK > okres)   eLeReS.SAT = NULL;
+  if (KURS_OK > okres)   eLeReS.KURS = NULL;
+  if (v_OK > okres)   eLeReS.v = NULL;
+  if (h_OK > okres)   eLeReS.h = NULL;
+  //sprintf(text, "h_OK:%d eLeReS.h:%d",h_OK,eLeReS.h );
+  //Serial.println(text);
 }
 
 void loop()

@@ -1,6 +1,9 @@
 # Konwerter_eLeReS_FrSky
 Konwerter telemetrii eLeReSa dla TG9XR
 
+12.03.2016
+Jeœli dany paramert z telemetrii nie jest odbierany przez 5 sekund - zerujê go i przestajê wysy³aæ dalej.
+
 11.03.2016
 	
 Doda³em sprawdzanie d³ugoœci stringu dla danych z eLeReSa. Odfiltrowuje to wiêkszoœæ b³êdów w transmisji.
