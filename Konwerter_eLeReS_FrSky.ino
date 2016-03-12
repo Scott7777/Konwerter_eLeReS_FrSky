@@ -60,6 +60,7 @@ void setup()
   pinMode(Pin_eLeReS, INPUT);
 #ifdef DEBUG
   Serial.begin(19200); //port sprzętowy do komunikatów debug.
+  Serial.println("Konwerter telemetrii eLeReS -> FrSky by Scott (rc-fpv.pl)");
 #endif
   pinMode(Pin_Led, OUTPUT);
 }
