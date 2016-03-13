@@ -17,7 +17,7 @@
 
 void blink1() {
   digitalWrite(Pin_Led, HIGH);   // turn the LED on (HIGH is the voltage level)
-  delay(100);              // wait 
+  delay(10);              // wait 
   digitalWrite(Pin_Led, LOW);    // turn the LED off by making the voltage LOW
 }
 

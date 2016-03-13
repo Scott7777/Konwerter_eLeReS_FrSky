@@ -26,6 +26,7 @@ uint32_t frame1Time;
 uint32_t frame2Time;
 uint32_t frame3Time;
 struct eLeReS_data eLeReS;
+String streLeReS;
 
 //zmienne do sprzwdzwnia czy dalej nadawane są te parametry
 unsigned int RSSI_OK;
@@ -69,28 +70,21 @@ void setup()
 void sendAllData() //tworzenie kompletnej ramki danych do wysłania
 {
   uint32_t currentTime = millis();
-  if (currentTime > frame3Time) // Sent every 5s (5000ms)
+  if (currentTime > frame3Time) // Sent every 1s (1000ms)
   {
-    frame3Time = currentTime + 5000;
+    frame3Time = currentTime + 1000;
     frame2Time = currentTime + 200; // Postpone frame 2 to next cycle
-    frame1Time = currentTime + 200; // Postpone frame 1 to next cycle
-
-    //    sendIniData();
-  }
-  else if (currentTime > frame2Time) // Sent every 1s (1000ms)
-  {
-    frame2Time = currentTime + 1000;
-    frame1Time = currentTime + 200; // Postpone frame 1 to next cycle
+    frame1Time = currentTime + 39; // Postpone frame 1 to next cycle
 
     sendUserData (FRSKY_TEMP1, eLeReS.tRX);
     //sendUserData (FRSKY_TEMP2, eLeReS.tTX); //nie wysyłam temperatury nadajnika - nie jest to telemetria z modelu
   }
-  else if (currentTime > frame1Time) // Sent every 200ms
+  else if (currentTime > frame2Time) // Sent every 200ms
   {
-    frame1Time = currentTime + 200;
-    Parametry_OK(25); //zanik parametru telemetrii wykrywam po 25x200ms = 5s
+    frame2Time = currentTime + 200;
+    frame1Time = currentTime + 39; // Postpone frame 1 to next cycle
 
-    sendLinkData(eLeReS.uRX, eLeReS.aRX, eLeReS.RSSI, eLeReS.RCQ);
+    Parametry_OK(25); //zanik parametru telemetrii wykrywam po 25x200ms = 5s
     sendUserData (FRSKY_GPS_ALT, eLeReS.h);
     sendUserData (FRSKY_GPS_SPEED_B, eLeReS.v);
     sendUserData (FRSKY_GPS_COURSE_B, eLeReS.KURS);
@@ -100,6 +94,12 @@ void sendAllData() //tworzenie kompletnej ramki danych do wysłania
     sendUserData (FRSKY_GPS_LAT_A, eLeReS.LatA);
     //sendUserData (FRSKY_RPM, 60);
     sendUserData (FRSKY_FUEL, eLeReS.FUEL);
+  }
+  else if (currentTime > frame1Time) // Sent every 35ms. Według er9x-frsky.cpp:// A1/A2/RSSI values // From a scope, this seems to be sent every about every 35mS 
+  {
+    frame1Time = currentTime + 35;
+    
+    sendLinkData(eLeReS.uRX, eLeReS.aRX, eLeReS.RSSI, eLeReS.RCQ);
   }
 }
 
@@ -126,7 +126,7 @@ void sendUserData(uint8_t id, int16_t val) //wysłanie pojedyńczego pakietu USE
     //port->write (0x01);
     FrskyData->write (0x5E);
     FrskyData->write (id);
-    SendValue(val);
+    SendDValue(val);
     FrskyData->write (0x5E);   // End of frame
     FrskyData->write (0x7E);   // End of frame
 
@@ -140,12 +140,13 @@ void sendLinkData(uint8_t A1, uint8_t A2, uint8_t Rssi, uint8_t Rcq) //wysłanie
 {
   if (FrskyData != NULL and Rssi != NULL) //nie wysyłam parametru o wartośći NULL
   {
+    int z=0x00;
     FrskyData->write (0x7E);
     FrskyData->write (0xFE);
-    SendValue(A1);
-    SendValue(A2);
-    SendValue(Rssi);
-    SendValue(Rcq);
+    SendLValue(A1);
+    SendLValue(A2);
+    SendLValue(Rssi);
+    SendLValue(Rcq);
     FrskyData->write (0x7E);   // End of frame
 
     if (FrskyData != NULL) FrskyData->flush();
@@ -154,7 +155,21 @@ void sendLinkData(uint8_t A1, uint8_t A2, uint8_t Rssi, uint8_t Rcq) //wysłanie
   }
 }
 
-void SendValue(int16_t val)
+void SendLValue(uint8_t val)
+{
+    if (val == 0x7E) {
+      FrskyData->write (0x7D);
+      FrskyData->write (0x5E);
+    }
+    else if (val == 0x7D) {
+      FrskyData->write (0x7D);
+      FrskyData->write (0x5D);
+    }
+    else
+      FrskyData->write (val);
+}
+
+void SendDValue(int16_t val)
 {
   int8_t d[2];
   int i;
@@ -196,14 +211,17 @@ void readLRS() //czytanie eLeReSa obliczenia i pakowanie do tablicy
 
   if (eLeReSData->available() > 0) {
 
-    str = eLeReSData->readStringUntil('\n');
-    //str = "RSSI=100 U=12.5V T=-17 h=0050 v=067 c=350";
+    if (streLeReS != "")
+      str = streLeReS;
+    else
+      str = eLeReSData->readStringUntil('\n');
+
 #ifdef DEBUG
     Serial.print ("rcv-eLeReS.Full_string: ");
     Serial.println(str);
 #endif
     str.replace(", ", ",");
-    blink1();
+    //blink1();
     for (uint8_t x = 0; x < 20; x++)
     {
       String xval = getValue(str, ' ', x); //wydzielenie pary parametr=wartosc
@@ -220,7 +238,7 @@ void readLRS() //czytanie eLeReSa obliczenia i pakowanie do tablicy
           Serial.print(text);
 #endif
         } else if (nazwa == "RCQ" and wartosc.length() == 3) {
-          eLeReS.RCQ = wartosc.toInt();
+          eLeReS.RCQ = wartosc.toInt() *2;
           RCQ_OK = 0;
 #ifdef DEBUG
           sprintf(text, "rcv-eLeReS.RCQ:%d ", eLeReS.RCQ);
@@ -403,8 +421,23 @@ void Parametry_OK(int okres)
   //Serial.println(text);
 }
 
+void testeLeReS()
+{
+  if (Serial.available() > 0) {
+
+    String str = Serial.readStringUntil('\n');
+    String nazwa = getValue(str, ':', 0);
+    String wartosc = getValue(str, ':', 1);
+    if (nazwa == "TEST") streLeReS = wartosc;
+    if (wartosc == "STOP") streLeReS = "";
+  }
+}
+
 void loop()
 {
+#ifdef DEBUG
+  testeLeReS();
+#endif
   readLRS();
   //delay(50);
   sendAllData();
