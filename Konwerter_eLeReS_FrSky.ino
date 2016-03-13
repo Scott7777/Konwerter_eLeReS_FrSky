@@ -106,7 +106,6 @@ void sendAllData() //tworzenie kompletnej ramki danych do wysłania
 int ObliczFuel() //konwersja napięcia pakietu na wskaźnik fuel
 {
   float fuel;
-  char text[50];
   float BAT_MIN = 85;
   float BAT_MAX = 126;
 
@@ -118,12 +117,8 @@ int ObliczFuel() //konwersja napięcia pakietu na wskaźnik fuel
 
 void sendUserData(uint8_t id, int16_t val) //wysłanie pojedyńczego pakietu USERDATA
 {
-  int8_t d[2];
-  int i;
   if (FrskyData != NULL and val != NULL) //nie wysyłam parametru o wartośći NULL
   {
-    d[0] =  val & 0x00ff;
-    d[1] = (val & 0xff00) >> 8;
 
     FrskyData->write (0x7E);
     FrskyData->write (0xFD);
@@ -131,20 +126,7 @@ void sendUserData(uint8_t id, int16_t val) //wysłanie pojedyńczego pakietu USE
     //port->write (0x01);
     FrskyData->write (0x5E);
     FrskyData->write (id);
-
-    for (i = 0; i < 2; i++) {
-      if      (d[i] == 0x5E) {
-        FrskyData->write (0x5D);
-        FrskyData->write (0x3E);
-      }
-      else if (d[i] == 0x5D) {
-        FrskyData->write (0x5D);
-        FrskyData->write (0x3D);
-      }
-      else
-        FrskyData->write (d[i]);
-    }
-
+    SendValue(val);
     FrskyData->write (0x5E);   // End of frame
     FrskyData->write (0x7E);   // End of frame
 
@@ -160,15 +142,45 @@ void sendLinkData(uint8_t A1, uint8_t A2, uint8_t Rssi, uint8_t Rcq) //wysłanie
   {
     FrskyData->write (0x7E);
     FrskyData->write (0xFE);
-    FrskyData->write (A1);
-    FrskyData->write (A2);
-    FrskyData->write (Rssi);
-    FrskyData->write (Rcq);
+    SendValue(A1);
+    SendValue(A2);
+    SendValue(Rssi);
+    SendValue(Rcq);
     FrskyData->write (0x7E);   // End of frame
 
     if (FrskyData != NULL) FrskyData->flush();
     //sprintf(text, "Wyslana ramka frsky LinkData RSSI:%d",Rssi );
     //Serial.println(text);
+  }
+}
+
+void SendValue(int16_t val)
+{
+  int8_t d[2];
+  int i;
+
+  d[0] =  val & 0x00ff;
+  d[1] = (val & 0xff00) >> 8;
+
+  for (i = 0; i < 2; i++) {
+    if (d[i] == 0x5E) {
+      FrskyData->write (0x5D);
+      FrskyData->write (0x3E);
+    }
+    else if (d[i] == 0x5D) {
+      FrskyData->write (0x5D);
+      FrskyData->write (0x3D);
+    }
+    else if (d[i] == 0x7E) {
+      FrskyData->write (0x7D);
+      FrskyData->write (0x5E);
+    }
+    else if (d[i] == 0x7D) {
+      FrskyData->write (0x7D);
+      FrskyData->write (0x5D);
+    }
+    else
+      FrskyData->write (d[i]);
   }
 }
 
@@ -185,7 +197,7 @@ void readLRS() //czytanie eLeReSa obliczenia i pakowanie do tablicy
   if (eLeReSData->available() > 0) {
 
     str = eLeReSData->readStringUntil('\n');
-    //str = eLeReSData->readString();
+    //str = "RSSI=100 U=12.5V T=-17 h=0050 v=067 c=350";
 #ifdef DEBUG
     Serial.print ("rcv-eLeReS.Full_string: ");
     Serial.println(str);
@@ -217,7 +229,6 @@ void readLRS() //czytanie eLeReSa obliczenia i pakowanie do tablicy
         } else if (nazwa == "U" and wartosc.length() == 5) {
           eLeReS.uRX = atof (wartosc.c_str()) * 10;
           eLeReS.FUEL = ObliczFuel();
-          if (eLeReS.uRX > 124) eLeReS.uRX = 124; //błąd wyliczania namięcia powyżej 12,4v - do znalezienia
           uRX_OK = 0;
 #ifdef DEBUG
           sprintf(text, "rcv-eLeReS.uRX:%d ", eLeReS.uRX);
