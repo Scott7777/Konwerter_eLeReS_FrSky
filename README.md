@@ -4,12 +4,12 @@ Konwerter telemetrii eLeReSa dla TG9XR
 12.03.2016
 
 Jeœli dany paramert z telemetrii nie jest odbierany przez 5 sekund - zerujê go i przestajê wysy³aæ dalej.
-----------
+
 
 11.03.2016
 	
 Doda³em sprawdzanie d³ugoœci stringu dla danych z eLeReSa. Odfiltrowuje to wiêkszoœæ b³êdów w transmisji.
-----------
+
 
 10.03.2016
 
@@ -18,7 +18,7 @@ Pod³¹czone do eLeReSa i sprawdzone.
 Dodany szczegó³owy debug.
 
 Dzia³a - mo¿na testowaæ.
-----------
+
 
 07.03.2016
 
@@ -51,4 +51,4 @@ Wysy³anie telemetrii:
 - kurs
 - pozycja GPS
 - wskaŸnik FUEL jako napiêcie baterii modelu
-----------
+
