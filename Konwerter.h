@@ -42,6 +42,8 @@
 #define FRSKY_GPS_COURSE_B  0x14
 #define FRSKY_GPS_COURSE_A  0x1C
 
+#define FRSKY_GPS_HDop      0x0D
+
 void blink1();
 String getValue(String data, char separator, int index);
 int ObliczFuel();
@@ -74,8 +76,7 @@ struct eLeReS_data
 
 // --- eLeReS
 //CH to wartosci 8 kanalow RC z nadajnika w HEX 00-FF, 80 srodek.
-//P to cisnienie z czujnika baro.
-//F to tryb lotu MuliWii.
+//P to ciśnienie z baro. W 0.01mbar + 50000. Czyli 48933 = 989.33mbar
 //Deb to wartosci zmiennych debug z MuliWii.
 //Pos to pozycja GPS
 //f to FIX GPS 0=brak, 1=2D fix, 2=3D fix
@@ -84,4 +85,33 @@ struct eLeReS_data
 //v to predkosc w km/h
 //h to wysokosc w metrach
 //UTX to napiecie baterii nadajnika RC
+
+//F to tryb lotu MuliWii.
+//MANUAL = 0x0A
+//STAB = 0x01
+//LEVEL = 0x02
+//ALTHOLD = 0x03
+//RTH = 0x06
+//POSHOLD = 0x05
+//RTH_DSC = 0x08
+//FAILSAFE = 0x07
+//
+//Do tego dodanie 0x10 oznacza ARMED, a 0x20 zapisanie HOME.
+//
+//A tak wogóle to tryby jakie potrafi wyświetlić eLDisp:
+//1 - ACRO
+//2- LEVEL
+//3- BARO
+//4- HesdFree
+//5- PosHild
+//6- RTH
+//7- FailSafe
+//8- RTH_DSC (TH)
+//9- wolne
+//A- Manual
+//B- GPS
+//C- ATTI
+//D- Course Lock
+//E- POI Lock
+//F- Home Lock
 

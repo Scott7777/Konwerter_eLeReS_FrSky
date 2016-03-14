@@ -60,7 +60,7 @@ void setup()
   eLeReSData->begin(Baud_eLeReS); //prędkość portu eLeReSa
   pinMode(Pin_eLeReS, INPUT);
 #ifdef DEBUG
-  Serial.begin(19200); //port sprzętowy do komunikatów debug.
+  Serial.begin(57600); //port sprzętowy do komunikatów debug.
   Serial.println("Konwerter telemetrii eLeReS -> FrSky by Scott (rc-fpv.pl)");
 #endif
   pinMode(Pin_Led, OUTPUT);
@@ -70,21 +70,22 @@ void setup()
 void sendAllData() //tworzenie kompletnej ramki danych do wysłania
 {
   uint32_t currentTime = millis();
-  if (currentTime > frame3Time) // Sent every 1s (1000ms)
+//  if (currentTime > frame3Time) // Sent every 5s (5000ms)
+//  {
+//    frame3Time = currentTime + 5000;
+//    frame2Time = currentTime + 800; // Postpone frame 2 to next cycle
+//    frame1Time = currentTime + 200; // Postpone frame 1 to next cycle
+//
+//    //sendUserData (FRSKY_TEMP1, eLeReS.tRX);
+//    //sendUserData (FRSKY_TEMP2, eLeReS.tTX); //nie wysyłam temperatury nadajnika - nie jest to telemetria z modelu
+//  }
+//  else 
+  if (currentTime > frame2Time) // Sent every 800ms
   {
-    frame3Time = currentTime + 1000;
-    frame2Time = currentTime + 200; // Postpone frame 2 to next cycle
-    frame1Time = currentTime + 39; // Postpone frame 1 to next cycle
+    frame2Time = currentTime + 800;
+    frame1Time = currentTime + 200; // Postpone frame 1 to next cycle
 
     sendUserData (FRSKY_TEMP1, eLeReS.tRX);
-    //sendUserData (FRSKY_TEMP2, eLeReS.tTX); //nie wysyłam temperatury nadajnika - nie jest to telemetria z modelu
-  }
-  else if (currentTime > frame2Time) // Sent every 200ms
-  {
-    frame2Time = currentTime + 200;
-    frame1Time = currentTime + 39; // Postpone frame 1 to next cycle
-
-    Parametry_OK(10); //zanik parametru telemetrii wykrywam po 10x200ms = 2s
     sendUserData (FRSKY_GPS_ALT, eLeReS.h);
     sendUserData (FRSKY_GPS_SPEED_B, eLeReS.v);
     sendUserData (FRSKY_GPS_COURSE_B, eLeReS.KURS);
@@ -92,14 +93,18 @@ void sendAllData() //tworzenie kompletnej ramki danych do wysłania
     sendUserData (FRSKY_GPS_LONG_A, eLeReS.LonA);
     sendUserData (FRSKY_GPS_LAT_B, eLeReS.LatB);
     sendUserData (FRSKY_GPS_LAT_A, eLeReS.LatA);
+    sendUserData (FRSKY_GPS_HDop, eLeReS.HD);
     //sendUserData (FRSKY_RPM, 60);
     sendUserData (FRSKY_FUEL, eLeReS.FUEL);
+   
+    
   }
-  else if (currentTime > frame1Time) // Sent every 35ms. Według er9x-frsky.cpp:// A1/A2/RSSI values // From a scope, this seems to be sent every about every 35mS 
+  else if (currentTime > frame1Time) // Sent every 200ms. Według er9x-frsky.cpp:// A1/A2/RSSI values // From a scope, this seems to be sent every about every 35mS 
   {
-    frame1Time = currentTime + 35;
+    frame1Time = currentTime + 200;
     
     sendLinkData(eLeReS.uRX, eLeReS.aRX, eLeReS.RSSI, eLeReS.RCQ);
+    Parametry_OK(10); //zanik parametru telemetrii wykrywam po 10x200ms = 2s
   }
 }
 
@@ -210,7 +215,7 @@ void readLRS() //czytanie eLeReSa obliczenia i pakowanie do tablicy
   float lon;
 
   if (eLeReSData->available() > 0) {
-
+  delay (10);
     if (streLeReS != "")
       str = streLeReS;
     else
@@ -419,6 +424,8 @@ void Parametry_OK(int okres)
   if (KURS_OK > okres)   eLeReS.KURS = NULL;
   if (v_OK > okres)   eLeReS.v = NULL;
   if (h_OK > okres)   eLeReS.h = NULL;
+  if (Pos_OK > okres)  {eLeReS.LonA = NULL; eLeReS.LonB = NULL; eLeReS.LatA = NULL; eLeReS.LatB = NULL;}
+  
   //sprintf(text, "h_OK:%d eLeReS.h:%d",h_OK,eLeReS.h );
   //Serial.println(text);
 }
