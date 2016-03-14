@@ -1,6 +1,12 @@
 # Konwerter_eLeReS_FrSky
 Konwerter telemetrii eLeReSa dla TG9XR
 
+14.03.2016
+
+- Modyfikacja prêdkoœci portu debug. Treaz jes 57600 baud. Na 19200 nie wyrabia³em siê z wysy³aniem FrSky.
+- Korekta timingów. 
+
+
 13.03.2016
 
 - Poprawka wysy³ania RSSI i RCQ.
