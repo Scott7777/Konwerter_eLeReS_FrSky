@@ -14,7 +14,7 @@
 
 // --- konfiguracja
 #define DEBUG
-#define Baud_eLeReS 58823 //58823 realna predkosc eLeReSa
+#define Baud_eLeReS 57600 //58823 realna predkosc eLeReSa?
 #define Baud_FrSky 9600
 #define Pin_eLeReS 3
 #define Pin_FrSky 2
@@ -59,7 +59,7 @@ struct eLeReS_data
   int uTX;
   int STX;
   int tTX;
-  int HDg;
+  int HD;
   int FIX;
   int SAT;
   int KURS;

@@ -39,7 +39,7 @@ unsigned int uTX_OK;
 unsigned int tTX_OK;
 unsigned int P_OK;
 unsigned int TRYB_OK;
-unsigned int HDg_OK;
+unsigned int HD_OK;
 unsigned int FIX_OK;
 unsigned int SAT_OK;
 unsigned int KURS_OK;
@@ -84,7 +84,7 @@ void sendAllData() //tworzenie kompletnej ramki danych do wysłania
     frame2Time = currentTime + 200;
     frame1Time = currentTime + 39; // Postpone frame 1 to next cycle
 
-    Parametry_OK(25); //zanik parametru telemetrii wykrywam po 25x200ms = 5s
+    Parametry_OK(10); //zanik parametru telemetrii wykrywam po 10x200ms = 2s
     sendUserData (FRSKY_GPS_ALT, eLeReS.h);
     sendUserData (FRSKY_GPS_SPEED_B, eLeReS.v);
     sendUserData (FRSKY_GPS_COURSE_B, eLeReS.KURS);
@@ -221,8 +221,9 @@ void readLRS() //czytanie eLeReSa obliczenia i pakowanie do tablicy
     Serial.println(str);
 #endif
     str.replace(", ", ",");
+    str.replace("\r", "");
     //blink1();
-    for (uint8_t x = 0; x < 20; x++)
+    for (uint8_t x = 0; x < 10; x++)
     {
       String xval = getValue(str, ' ', x); //wydzielenie pary parametr=wartosc
       if (xval != NULL)
@@ -254,7 +255,7 @@ void readLRS() //czytanie eLeReSa obliczenia i pakowanie do tablicy
           sprintf(text, "rcv-eLeReS.FUEL:%d ", eLeReS.FUEL);
           Serial.print(text);
 #endif
-        } else if (nazwa == "T" and (wartosc.length() == 5 or wartosc.length() == 6)) {
+        } else if (nazwa == "T" and (wartosc.length() == 4 or wartosc.length() == 5)) {
           eLeReS.tRX = wartosc.toInt();
           tRX_OK = 0;
 #ifdef DEBUG
@@ -282,7 +283,7 @@ void readLRS() //czytanie eLeReSa obliczenia i pakowanie do tablicy
           sprintf(text, "rcv-eLeReS.STX:%d ", eLeReS.STX);
           Serial.print(text);
 #endif
-        } else if (nazwa == "TTX" and (wartosc.length() == 5 or wartosc.length() == 6)) {
+        } else if (nazwa == "TTX" and (wartosc.length() == 4 or wartosc.length() == 5)) {
           eLeReS.tTX = wartosc.toInt();
           tTX_OK = 0;
 #ifdef DEBUG
@@ -296,7 +297,7 @@ void readLRS() //czytanie eLeReSa obliczenia i pakowanie do tablicy
           sprintf(text, "rcv-eLeReS.P:%d ", eLeReS.P);
           Serial.print(text);
 #endif
-        } else if (nazwa == "F" and wartosc.length() == 1) {
+        } else if (nazwa == "F" and wartosc.length() == 2) {
           eLeReS.TRYB = wartosc.toInt();
           TRYB_OK = 0;
 #ifdef DEBUG
@@ -304,10 +305,10 @@ void readLRS() //czytanie eLeReSa obliczenia i pakowanie do tablicy
           Serial.print(text);
 #endif
         } else if (nazwa == "HD" and wartosc.length() == 4) {
-          eLeReS.HDg = atof (wartosc.c_str()) * 10; //?
-          HDg_OK = 0;
+          eLeReS.HD = atof (wartosc.c_str()) * 10; //?
+          HD_OK = 0;
 #ifdef DEBUG
-          sprintf(text, "rcv-eLeReS.HDg:%d ", eLeReS.HDg);
+          sprintf(text, "rcv-eLeReS.HD:%d ", eLeReS.HD);
           Serial.print(text);
 #endif
         } else if (nazwa == "f" and wartosc.length() == 1) {
@@ -375,6 +376,7 @@ void readLRS() //czytanie eLeReSa obliczenia i pakowanie do tablicy
       }
     }
     Serial.println();
+    if (eLeReSData != NULL) eLeReSData->flush();
   }
 }
 
@@ -390,7 +392,7 @@ void Parametry_OK(int okres)
   tTX_OK++;
   P_OK++;
   TRYB_OK++;
-  HDg_OK++;
+  HD_OK++;
   FIX_OK++;
   SAT_OK++;
   KURS_OK++;
@@ -411,7 +413,7 @@ void Parametry_OK(int okres)
   if (tTX_OK > okres)   eLeReS.tTX = NULL;
   if (P_OK > okres)   eLeReS.P = NULL;
   if (TRYB_OK > okres)   eLeReS.TRYB = NULL;
-  if (HDg_OK > okres)   eLeReS.HDg = NULL;
+  if (HD_OK > okres)   eLeReS.HD = NULL;
   if (FIX_OK > okres)   eLeReS.FIX = NULL;
   if (SAT_OK > okres)   eLeReS.SAT = NULL;
   if (KURS_OK > okres)   eLeReS.KURS = NULL;

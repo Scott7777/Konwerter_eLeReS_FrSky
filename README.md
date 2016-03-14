@@ -5,8 +5,8 @@ Konwerter telemetrii eLeReSa dla TG9XR
 
 - Poprawka wysy³ania RSSI i RCQ.
 - Dodanie symulacji komunikatów z eLeReSa
-  Wysy³aj¹c "TEST:lista parametrów" do portu DEBUG symulujemy wys³¹nie tych danych z eLeReSa.
-  np. TEST:RSSI=091 RCQ=075 U=12.2V I=00.7A h=0500
+  Wysy³aj¹c "TEST:lista parametrów" do portu DEBUG symulujemy wys³anie tych danych z eLeReSa.
+  np. TEST:RSSI=091 RCQ=075 U=12.2V I=00.7A h=0500. Wys³¹nie TEST:STOP koñczy symulacjê.
 - Zmiana timingów wysy³ania ramek. Ju¿ nie znika TSSI(RCQ). Dzia³a te¿ lepiej zmienna TmOK mówi¹ca o poprawnym odbiorze telemetrii w aparaturze.
 
 
