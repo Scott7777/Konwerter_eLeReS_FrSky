@@ -86,7 +86,7 @@ void sendAllData() //tworzenie kompletnej ramki danych do wysłania
     frame1Time = currentTime + 200; // Postpone frame 1 to next cycle
 
     sendUserData (FRSKY_TEMP1, eLeReS.tRX);
-    sendUserData (FRSKY_GPS_ALT, eLeReS.h);
+    sendUserData (FRSKY_GPS_ALT_B, eLeReS.h);
     sendUserData (FRSKY_GPS_SPEED_B, eLeReS.v);
     sendUserData (FRSKY_GPS_COURSE_B, eLeReS.KURS);
     sendUserData (FRSKY_GPS_LONG_B, eLeReS.LonB);
@@ -94,6 +94,8 @@ void sendAllData() //tworzenie kompletnej ramki danych do wysłania
     sendUserData (FRSKY_GPS_LAT_B, eLeReS.LatB);
     sendUserData (FRSKY_GPS_LAT_A, eLeReS.LatA);
     sendUserData (FRSKY_GPS_HDop, eLeReS.HD);
+    sendUserData (FRSKY_ALT_B, eLeReS.b_h_B);
+    sendUserData (FRSKY_ALT_A, eLeReS.b_h_A);
     //sendUserData (FRSKY_RPM, 60);
     sendUserData (FRSKY_FUEL, eLeReS.FUEL);
    
@@ -122,7 +124,7 @@ int ObliczFuel() //konwersja napięcia pakietu na wskaźnik fuel
 
 void sendUserData(uint8_t id, int16_t val) //wysłanie pojedyńczego pakietu USERDATA
 {
-  if (FrskyData != NULL and val != NULL) //nie wysyłam parametru o wartośći NULL
+  if (FrskyData != NULL)
   {
 
     FrskyData->write (0x7E);
@@ -143,7 +145,7 @@ void sendUserData(uint8_t id, int16_t val) //wysłanie pojedyńczego pakietu USE
 
 void sendLinkData(uint8_t A1, uint8_t A2, uint8_t Rssi, uint8_t Rcq) //wysłanie pakietu LINKDATA (A1,A2,RSSI,RCQ)
 {
-  if (FrskyData != NULL and Rssi != NULL) //nie wysyłam parametru o wartośći NULL
+  if (FrskyData != NULL)
   {
     int z=0x00;
     FrskyData->write (0x7E);
@@ -252,12 +254,9 @@ void readLRS() //czytanie eLeReSa obliczenia i pakowanie do tablicy
 #endif
         } else if (nazwa == "U" and wartosc.length() == 5) {
           eLeReS.uRX = atof (wartosc.c_str()) * 10;
-          eLeReS.FUEL = ObliczFuel();
           uRX_OK = 0;
 #ifdef DEBUG
           sprintf(text, "rcv-eLeReS.uRX:%d ", eLeReS.uRX);
-          Serial.print(text);
-          sprintf(text, "rcv-eLeReS.FUEL:%d ", eLeReS.FUEL);
           Serial.print(text);
 #endif
         } else if (nazwa == "T" and (wartosc.length() == 4 or wartosc.length() == 5)) {
@@ -296,11 +295,12 @@ void readLRS() //czytanie eLeReSa obliczenia i pakowanie do tablicy
           Serial.print(text);
 #endif
         } else if (nazwa == "P" and wartosc.length() == 5) {
-          eLeReS.P = wartosc.toInt();
+          eLeReS.P = (atof (wartosc.c_str()) + 50000) / 100;
           P_OK = 0;
 #ifdef DEBUG
-          sprintf(text, "rcv-eLeReS.P:%d ", eLeReS.P);
-          Serial.print(text);
+          Serial.print("rcv-eLeReS.P:");
+          Serial.print(eLeReS.P);
+          Serial.print(" ");
 #endif
         } else if (nazwa == "F" and wartosc.length() == 2) {
           eLeReS.TRYB = wartosc.toInt();
@@ -380,7 +380,23 @@ void readLRS() //czytanie eLeReSa obliczenia i pakowanie do tablicy
         }
       }
     }
+    eLeReS.FUEL = ObliczFuel();
+    float sealevelPressure = 101325;
+    if (eLeReS.P == 0) 
+    {
+      eLeReS.b_h_B=0; 
+      eLeReS.b_h_A=0;
+    } 
+    else 
+    {
+      float alt = 44330 * (1.0 - pow((eLeReS.P * 100) / sealevelPressure, 0.1903));
+      eLeReS.b_h_B = (uint16_t)alt;
+      eLeReS.b_h_A = abs((int16_t)round((alt - eLeReS.b_h_B) * 100.0));
+    }
+
+#ifdef DEBUG
     Serial.println();
+#endif
     if (eLeReSData != NULL) eLeReSData->flush();
   }
 }
@@ -405,26 +421,26 @@ void Parametry_OK(int okres)
   h_OK++;
   Pos_OK++;
 
-  if (RSSI_OK > okres)  eLeReS.RSSI = NULL; //jeśli parametr osiągnie pewną wartość - oznacza to , że przez dłuższy okres nie był odświeżony - znaczy nie jest nadawany w telemetrii. Zeruję go.
-  if (RCQ_OK > okres) eLeReS.RCQ = NULL;
-  if (uRX_OK > okres)   eLeReS.uRX = NULL;
-  if (tRX_OK > okres)   eLeReS.tRX = NULL;
-  if (STX_OK > okres)   eLeReS.STX = NULL;
-  if (aRX_OK > okres)   eLeReS.aRX = NULL;
+  if (RSSI_OK > okres)  eLeReS.RSSI = 0; //jeśli parametr osiągnie pewną wartość - oznacza to , że przez dłuższy okres nie był odświeżony - znaczy nie jest nadawany w telemetrii. Zeruję go.
+  if (RCQ_OK > okres) eLeReS.RCQ = 0;
+  if (uRX_OK > okres)   eLeReS.uRX = 0;
+  if (tRX_OK > okres)   eLeReS.tRX = 0;
+  if (STX_OK > okres)   eLeReS.STX = 0;
+  if (aRX_OK > okres)   eLeReS.aRX = 0;
   if (uTX_OK > okres)   {
-    eLeReS.uTX = NULL;
-    eLeReS.FUEL = NULL;
+    eLeReS.uTX = 0;
+    eLeReS.FUEL = 0;
   }
-  if (tTX_OK > okres)   eLeReS.tTX = NULL;
-  if (P_OK > okres)   eLeReS.P = NULL;
-  if (TRYB_OK > okres)   eLeReS.TRYB = NULL;
-  if (HD_OK > okres)   eLeReS.HD = NULL;
-  if (FIX_OK > okres)   eLeReS.FIX = NULL;
-  if (SAT_OK > okres)   eLeReS.SAT = NULL;
-  if (KURS_OK > okres)   eLeReS.KURS = NULL;
-  if (v_OK > okres)   eLeReS.v = NULL;
-  if (h_OK > okres)   eLeReS.h = NULL;
-  if (Pos_OK > okres)  {eLeReS.LonA = NULL; eLeReS.LonB = NULL; eLeReS.LatA = NULL; eLeReS.LatB = NULL;}
+  if (tTX_OK > okres)   eLeReS.tTX = 0;
+  if (P_OK > okres)   eLeReS.P = 0;
+  if (TRYB_OK > okres)   eLeReS.TRYB = 0;
+  if (HD_OK > okres)   eLeReS.HD = 0;
+  if (FIX_OK > okres)   eLeReS.FIX = 0;
+  if (SAT_OK > okres)   eLeReS.SAT = 0;
+  if (KURS_OK > okres)   eLeReS.KURS = 0;
+  if (v_OK > okres)   eLeReS.v = 0;
+  if (h_OK > okres)   eLeReS.h = 0;
+  //if (Pos_OK > okres)  {eLeReS.LonA = 0; eLeReS.LonB = 0; eLeReS.LatA = 0; eLeReS.LatB = 0;}
   
   //sprintf(text, "h_OK:%d eLeReS.h:%d",h_OK,eLeReS.h );
   //Serial.println(text);

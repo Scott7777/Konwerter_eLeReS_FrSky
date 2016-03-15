@@ -21,12 +21,14 @@
 #define Pin_Led 13
 // --- koniec konfiguracji
 
-#define FRSKY_GPS_ALT       0x01
+#define FRSKY_GPS_ALT_B     0x01
+#define FRSKY_GPS_ALT_A     0x09
 #define FRSKY_TEMP1         0x02
 #define FRSKY_RPM           0x03
 #define FRSKY_FUEL          0x04
 #define FRSKY_TEMP2         0x05
 #define FRSKY_ALT_B         0x10
+#define FRSKY_ALT_A         0x21
 
 #define FRSKY_GPS_SPEED_B   0x11
 #define FRSKY_GPS_SPEED_A   0x19
@@ -56,7 +58,7 @@ struct eLeReS_data
   int uRX;
   int aRX;
   int tRX;
-  int P;
+  float P;
   int TRYB;
   int uTX;
   int STX;
@@ -67,6 +69,8 @@ struct eLeReS_data
   int KURS;
   int v;
   int h;
+  int b_h_B;
+  int b_h_A;
   int16_t LatB;
   uint16_t LatA;
   int16_t LonB;
