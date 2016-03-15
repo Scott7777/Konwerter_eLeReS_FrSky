@@ -2,7 +2,7 @@
 Konwerter telemetrii eLeReSa dla TG9XR
 
 
-14.03.2016
+15.03.2016
 
 - Zerowanie parametrów po zaniku telemetrii. Nie zeruje siê pozycja z GPSa.
 - Obliczanie ciœnienia i wysokoœci barometrycznej npm.
