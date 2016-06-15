@@ -118,4 +118,24 @@ struct eLeReS_data
 //D- Course Lock
 //E- POI Lock
 //F- Home Lock
+//z TrackMyRc
+//F=XY gdzie X=0 rozbrojony, X=1 uzbrojony.
+//A wszelkie możliwe kombinacje Y to:
+//0 - brak przekazywania trybu
+//1 - Acro
+//2 - Level
+//3 - Baro (AltHold)
+//4 - HeadFree (Mag Mode)
+//5 - Pos Hold
+//6 - RTH
+//7 - FailSafe
+//8 - CD (dla AP eLeReS)
+//9 - nieuzywany
+//A - MANUAL (DJI) lub Passthru (AP eLeReS)
+//B - GPS (DJI)
+//C - ATTI (DJI)
+//D - Course Lock (DJI)
+//E - Poi Lock (DJI)
+//F - Home Lock (DJI)
+
 

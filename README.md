@@ -1,6 +1,8 @@
 # Konwerter_eLeReS_FrSky
 Konwerter telemetrii eLeReSa dla TG9XR
 
+15.06.2016
+- Poprawka wysy³ania telemetrii do aparatury. Teraz powinno dzia³aæ te¿ dla  Esky9x - 9XR Pro.
 
 15.03.2016
 

@@ -130,11 +130,12 @@ void sendUserData(uint8_t id, int16_t val) //wysłanie pojedyńczego pakietu USE
     FrskyData->write (0x7E);
     FrskyData->write (0xFD);
     FrskyData->write (0x04);
-    //port->write (0x01);
     FrskyData->write (0x5E);
     FrskyData->write (id);
     SendDValue(val);
     FrskyData->write (0x5E);   // End of frame
+    FrskyData->write ((uint8_t)0x00);
+    FrskyData->write ((uint8_t)0x00);
     FrskyData->write (0x7E);   // End of frame
 
     if (FrskyData != NULL) FrskyData->flush();
@@ -147,13 +148,16 @@ void sendLinkData(uint8_t A1, uint8_t A2, uint8_t Rssi, uint8_t Rcq) //wysłanie
 {
   if (FrskyData != NULL)
   {
-    int z=0x00;
     FrskyData->write (0x7E);
     FrskyData->write (0xFE);
     SendLValue(A1);
     SendLValue(A2);
     SendLValue(Rssi);
     SendLValue(Rcq);
+    FrskyData->write ((uint8_t)0x00);
+    FrskyData->write ((uint8_t)0x00);
+    FrskyData->write ((uint8_t)0x00);
+    FrskyData->write ((uint8_t)0x00);
     FrskyData->write (0x7E);   // End of frame
 
     if (FrskyData != NULL) FrskyData->flush();
